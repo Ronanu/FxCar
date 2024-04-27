@@ -4,21 +4,20 @@ import matplotlib.pyplot as plt
 # Parameter für die gestauchte Ellipse
 a = 3  # Länge der horizontalen Achse
 b = 2  # Länge der vertikalen Achse
-stauchungsfaktor = 0.8  # Stauchungsfaktor für die Ellipse
+h = 0.2  # Horizontaler Verschiebungsfaktor
 
-# Erzeugen der Werte für den Parameter t
+# Parametrische Darstellung der Ellipse
 t = np.linspace(0, 2*np.pi, 100)
+x = a * np.cos(t)
+y = b * np.sin(t) * (h * np.cos(t)+1)
 
-# Berechnung der x- und y-Koordinaten der Ellipse mit Stauchung
-x = a * np.cos(t) * stauchungsfaktor
-y = b * np.sin(t)
-
+ellipsenpunkte = np.array([x, y])
 # Plotten der gestauchten Ellipse
 plt.figure(figsize=(8, 6))
-plt.plot(x, y)
-
+plt.plot(ellipsenpunkte[0], ellipsenpunkte[1])
+# plt.gca().set_aspect('equal', adjustable='box')  # Das Seitenverhältnis beibehalten
 plt.xlabel('x')
 plt.ylabel('y')
-plt.title('Gestauchte Ellipse')
+plt.title('Asymmetrisch gestauchte Ellipse') 
 plt.grid(True)
 plt.show()
