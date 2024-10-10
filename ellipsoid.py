@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # Parameter für die gestauchte Ellipse
 a = 3  # Länge der horizontalen Achse
 b = 2  # Länge der vertikalen Achse
-h = 1  # Horizontaler Verschiebungsfaktor
+h = .1  # Horizontaler Verschiebungsfaktor
 
 # Parametrische Darstellung der Ellipse
 t = np.linspace(0, 2*np.pi, 100)
