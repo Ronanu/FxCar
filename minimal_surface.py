@@ -4,21 +4,31 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from tkinter import Tk, filedialog
 
+# Boolean-Variable, um zu steuern, ob das tkinter-Dateiauswahlfenster verwendet werden soll
+use_file_dialog = False  # Ändere auf True, um das Dateiauswahlfenster zu öffnen
+
+# Standard-Dateipfad für die Datei 'seite_1_2_3.txt'
+default_file_path = 'seite_1_2_3.txt'
+
 # Funktion zum Öffnen einer Datei und Einlesen der Kurvendaten
 def open_and_plot_minimal_surface():
-    # Erstelle ein verstecktes Tkinter-Fenster
-    root = Tk()
-    root.withdraw()  # Verstecke das Hauptfenster
-    
-    # Öffne den Dateidialog
-    file_path = filedialog.askopenfilename(
-        title="Wähle eine Datei zur Anzeige",
-        filetypes=[("Textdateien", "*.txt"), ("Alle Dateien", "*.*")]
-    )
-    
-    if not file_path:
-        print("Keine Datei ausgewählt.")
-        return
+    # Datei wählen basierend auf der Booleschen Variable
+    if use_file_dialog:
+        # Erstelle ein verstecktes Tkinter-Fenster
+        root = Tk()
+        root.withdraw()  # Verstecke das Hauptfenster
+        
+        # Öffne den Dateidialog
+        file_path = filedialog.askopenfilename(
+            title="Wähle eine Datei zur Anzeige",
+            filetypes=[("Textdateien", "*.txt"), ("Alle Dateien", "*.*")]
+        )
+        
+        if not file_path:
+            print("Keine Datei ausgewählt. Standard-Datei wird verwendet.")
+            file_path = default_file_path
+    else:
+        file_path = default_file_path
 
     # Lese die Kurvendaten aus der Datei
     points = []
@@ -60,20 +70,30 @@ def open_and_plot_minimal_surface():
     # Initialisiere die Höhe (z) mit der Funktion
     Z_init = initial_surface(R, Phi)
 
+    # Speichere die initialen Z-Werte zur späteren Darstellung
+    Z_initial_saved = Z_init.copy()
+
     # Definiere die Flächenenergie als zu minimierende Funktion
     def surface_energy(Z, R, Phi):
         # Z wird als 1D-Array übergeben, daher Reshape
         Z = Z.reshape(R.shape)
         
+        # Berechne die Schrittweite
+        dr = r_values[1] - r_values[0]
+        dphi = phi_values[1] - phi_values[0]
+
         # Berechne die partiellen Ableitungen der Fläche nach r und phi
-        Z_r = np.gradient(Z, R, axis=0)
-        Z_phi = np.gradient(Z, Phi, axis=1)
+        Z_r = np.gradient(Z, dr, axis=0)
+        Z_phi = np.gradient(Z, dphi, axis=1)
+        
+        # Vermeide Division durch Null bei kleinen R-Werten
+        R_safe = np.where(R == 0, 1e-10, R)  # Ersetze 0 durch einen kleinen Wert
         
         # Berechne die Normale und die Energie
-        energy_density = np.sqrt(1 + Z_r**2 + (Z_phi / R)**2)
+        energy_density = np.sqrt(1 + Z_r**2 + (Z_phi / R_safe)**2)
         
         # Integriere über die Fläche, um die Gesamtenergie zu berechnen
-        return np.sum(energy_density) * (R[1, 0] - R[0, 0]) * (Phi[0, 1] - Phi[0, 0])
+        return np.sum(energy_density) * dr * dphi
 
     # Optimierungsfunktion, um die Fläche zu minimieren
     result = minimize(
@@ -91,16 +111,28 @@ def open_and_plot_minimal_surface():
     X = R * np.cos(Phi) + center_x
     Y = R * np.sin(Phi) + center_y
 
-    # Plotten der optimierten Minimalfläche
-    fig = plt.figure(figsize=(10, 7))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X, Y, Z_optimized, cmap='viridis', edgecolor='none')
-    ax.scatter(x_points, y_points, z_points, color='red', label='Randpunkte')
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    ax.set_title(f'Optimierte Minimalfläche: {file_path.split("/")[-1]}')
-    plt.legend()
+    # Erstelle den Plot der initialen Z-Werte
+    fig_init = plt.figure(figsize=(12, 7))
+    ax_init = fig_init.add_subplot(111, projection='3d')
+    ax_init.plot_surface(X, Y, Z_initial_saved, cmap='coolwarm', edgecolor='none', alpha=0.7)
+    ax_init.scatter(x_points, y_points, z_points, color='red', label='Randpunkte')
+    ax_init.set_xlabel('X')
+    ax_init.set_ylabel('Y')
+    ax_init.set_zlabel('Z')
+    ax_init.set_title(f'Initiale Oberfläche: {file_path.split("/")[-1]}')
+    ax_init.legend(['Initiale Fläche', 'Randpunkte'])
+    plt.show()
+
+    # Erstelle den Plot der optimierten Minimalfläche
+    fig_opt = plt.figure(figsize=(12, 7))
+    ax_opt = fig_opt.add_subplot(111, projection='3d')
+    ax_opt.plot_surface(X, Y, Z_optimized, cmap='viridis', edgecolor='none', alpha=0.7)
+    ax_opt.scatter(x_points, y_points, z_points, color='red', label='Randpunkte')
+    ax_opt.set_xlabel('X')
+    ax_opt.set_ylabel('Y')
+    ax_opt.set_zlabel('Z')
+    ax_opt.set_title(f'Optimierte Minimalfläche: {file_path.split("/")[-1]}')
+    ax_opt.legend(['Optimierte Fläche', 'Randpunkte'])
     plt.show()
 
 # Ausführen der Funktion zur Dateiauswahl und zum Plotten der Minimalfläche
