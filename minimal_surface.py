@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tkinter import Tk, filedialog
-from minsurface_class import MinSurface
+from minsurface_class import MinSurface  # Importiere deine MinSurface-Klasse
+from rand import Rand  # Importiere die Rand-Klasse
 
 # Boolean-Variable, um zu steuern, ob das tkinter-Dateiauswahlfenster verwendet werden soll
 use_file_dialog = False  # Ändere auf True, um das Dateiauswahlfenster zu öffnen
@@ -43,9 +44,13 @@ def read_file():
 
 # Hauptprogramm
 if __name__ == "__main__":
+    # Einlesen der Datei und der Randpunkte
     points, file_path = read_file()
 
-    # Initialisiere das MinSurface-Objekt
+    # Initialisiere das Rand-Objekt mit den eingelesenen Punkten
+    rand = Rand(points, interpolation_type='cubic')
+
+    # Initialisiere das MinSurface-Objekt mit den Randpunkten
     min_surface = MinSurface(points)
 
     # Führe die Berechnungen durch
@@ -68,7 +73,6 @@ if __name__ == "__main__":
     ax_init.set_title(f'Initiale Oberfläche: {file_path.split("/")[-1]}')
     ax_init.legend(['Initiale Fläche', 'Randpunkte'])
 
-
     # Plot der optimierten Minimalfläche
     fig_opt = plt.figure(figsize=(12, 7))
     ax_opt = fig_opt.add_subplot(111, projection='3d')
@@ -79,4 +83,6 @@ if __name__ == "__main__":
     ax_opt.set_zlabel('Z')
     ax_opt.set_title(f'Optimierte Minimalfläche: {file_path.split("/")[-1]}')
     ax_opt.legend(['Optimierte Fläche', 'Randpunkte'])
+
+    # Zeige die Plots an
     plt.show()
