@@ -11,9 +11,9 @@ use_file_dialog = False  # Ändere auf True, um das Dateiauswahlfenster zu öffn
 default_file_path = 'seite_1_2_3.txt'
 
 # Funktion zum Einlesen der Datei
-def read_file():
+def read_file(_use_file_dialog=use_file_dialog):
     # Datei wählen basierend auf der Booleschen Variable
-    if use_file_dialog:
+    if _use_file_dialog:
         # Erstelle ein verstecktes Tkinter-Fenster
         root = Tk()
         root.withdraw()  # Verstecke das Hauptfenster

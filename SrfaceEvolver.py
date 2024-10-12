@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.spatial import Delaunay
+from rand import Rand
 
 class SurfaceEvolverInput:
-    def __init__(self, rand, num_r=10, num_phi=36):
+    def __init__(self, rand:Rand, num_r=10, num_phi=72):
         self.rand = rand
         self.num_radii = num_r  # Anzahl der Radialpunkte
         self.num_angles = num_phi  # Anzahl der Winkelpunkte
@@ -34,9 +35,15 @@ class SurfaceEvolverInput:
         # Berechnung der initialen Z-Werte basierend auf den nächstgelegenen Randpunkten
         for i in range(radii_grid.shape[0]):
             for j in range(radii_grid.shape[1]):
-                distances = np.sqrt((self.rand.x_points - x_coords[i, j])**2 + (self.rand.y_points - y_coords[i, j])**2)
-                closest_idx = np.argmin(distances)
-                z_values_init[i, j] = self.rand.z_points[closest_idx]
+                phi = np.arctan2(y_coords[i, j] - self.rand.center_y, x_coords[i, j] - self.rand.center_x)
+                zmax_phi = self.rand.getPoint(phi)[2]
+                radius_max_phi = self.rand.getRadius(phi)
+                opposite_phi = phi + np.pi if phi < 0 else phi - np.pi
+                zmax_opposite_phi = self.rand.getPoint(opposite_phi)[2]
+                radius_max_opposite_phi = self.rand.getRadius(opposite_phi)
+                radius = np.sqrt((x_coords[i, j] - self.rand.center_x)**2 + (y_coords[i, j] - self.rand.center_y)**2)
+                z = (radius / radius_max_phi) * zmax_phi + (radius_max_phi - radius) / radius_max_phi * zmax_opposite_phi
+                z_values_init[i, j] = z
 
         return z_values_init
 
@@ -58,8 +65,14 @@ class SurfaceEvolverInput:
         vertex_mapping = {}
         vertex_id = 1
         for i in range(vertices.shape[0]):
-            # Prüfe, ob der Vertex auf dem Rand liegt
-            is_fixed = # check self.max_radius_list
+            # Berechne den aktuellen Radius des Vertex
+            r_current = np.sqrt((vertices[i, 0] - self.rand.center_x)**2 + (vertices[i, 1] - self.rand.center_y)**2)
+            phi_current = np.arctan2(vertices[i, 1] - self.rand.center_y, vertices[i, 0] - self.rand.center_x)
+
+            # Prüfe, ob der Vertex auf dem maximalen Radius für den Winkel liegt
+            max_radius = self.rand.getRadius(phi_current)
+            is_fixed = np.isclose(r_current, max_radius)
+
             fixed_text = " fixed" if is_fixed else ""
             evolver_input.append(f"{vertex_id} {vertices[i, 0]} {vertices[i, 1]} {Z.ravel()[i]}{fixed_text}\n")
             vertex_mapping[i] = vertex_id
@@ -74,9 +87,17 @@ class SurfaceEvolverInput:
                 v1 = simplex[k]
                 v2 = simplex[(k + 1) % 3]
                 edge_key = (v1, v2)
-                # Prüfe, ob beide Endpunkte der Kante auf dem Rand liegen
-                is_fixed = # check self.max_radius_list
+
+                # Berechne die Radien der Endpunkte der Kante
+                r1 = np.sqrt((vertices[v1, 0] - self.rand.center_x)**2 + (vertices[v1, 1] - self.rand.center_y)**2)
+                r2 = np.sqrt((vertices[v2, 0] - self.rand.center_x)**2 + (vertices[v2, 1] - self.rand.center_y)**2)
+                phi1 = np.arctan2(vertices[v1, 1] - self.rand.center_y, vertices[v1, 0] - self.rand.center_x)
+                phi2 = np.arctan2(vertices[v2, 1] - self.rand.center_y, vertices[v2, 0] - self.rand.center_x)
+
+                # Prüfe, ob beide Endpunkte der Kante auf dem maximalen Radius für ihren Winkel liegen
+                is_fixed = np.isclose(r1, self.rand.getRadius(phi1)) and np.isclose(r2, self.rand.getRadius(phi2))
                 fixed_text = " fixed" if is_fixed else ""
+
                 # Kante nur einmal definieren
                 if edge_key not in edge_mapping and (v2, v1) not in edge_mapping:
                     evolver_input.append(f"{edge_id} {vertex_mapping[v1]} {vertex_mapping[v2]}{fixed_text}\n")
@@ -119,7 +140,7 @@ class SurfaceEvolverInput:
 if __name__ == "__main__":
     from rand import Rand  # Beispielhafte Randklasse
     from minimal_surface import read_file  # Funktion zum Einlesen von Punkten aus einer Datei
-    points, file_path = read_file()
+    points, file_path = read_file(True)  # Einlesen der Punkte aus einer Datei
 
     # Initialisiere das Rand-Objekt mit den eingelesenen Punkten
     rand = Rand(points, interpolation_type='cubic')
