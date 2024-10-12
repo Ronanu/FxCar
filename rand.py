@@ -12,28 +12,52 @@ class Rand:
         self.r_points = np.sqrt((self.x_points - self.center_x)**2 + (self.y_points - self.center_y)**2)
         self.phi_points = np.arctan2(self.y_points - self.center_y, self.x_points - self.center_x)
 
-        # Sortiere die Punkte nach ihren Winkeln
+        # Sortiere die Punkte nach ihren Winkeln und entferne doppelte Werte
         sorted_indices = np.argsort(self.phi_points)
         self.phi_points_sorted = self.phi_points[sorted_indices]
         self.r_points_sorted = self.r_points[sorted_indices]
         self.z_points_sorted = self.z_points[sorted_indices]
 
+        # Entferne duplizierte phi-Werte, um strikte Monotonie zu gewährleisten
+        unique_phi, unique_indices = np.unique(self.phi_points_sorted, return_index=True)
+        self.phi_points_sorted = unique_phi
+        self.r_points_sorted = self.r_points_sorted[unique_indices]
+        self.z_points_sorted = self.z_points_sorted[unique_indices]
+
         # Wähle den Interpolationstyp
         self.interpolation_type = interpolation_type.lower()
-        if self.interpolation_type == 'cubic':
-            # Kubische Interpolation des Radius und der Z-Koordinate als Funktion des Winkels
-            self.radius_interp = CubicSpline(
-                self.phi_points_sorted, 
-                self.r_points_sorted, 
-                extrapolate=True
-            )
-            self.z_interp = CubicSpline(
-                self.phi_points_sorted, 
-                self.z_points_sorted, 
-                extrapolate=True
-            )
-        elif self.interpolation_type == 'linear':
-            # Lineare Interpolation des Radius und der Z-Koordinate als Funktion des Winkels
+        try:
+            if self.interpolation_type == 'cubic':
+                # Kubische Interpolation des Radius und der Z-Koordinate als Funktion des Winkels
+                self.radius_interp = CubicSpline(
+                    self.phi_points_sorted, 
+                    self.r_points_sorted, 
+                    extrapolate=True
+                )
+                self.z_interp = CubicSpline(
+                    self.phi_points_sorted, 
+                    self.z_points_sorted, 
+                    extrapolate=True
+                )
+            elif self.interpolation_type == 'linear':
+                # Lineare Interpolation des Radius und der Z-Koordinate als Funktion des Winkels
+                self.radius_interp = interp1d(
+                    self.phi_points_sorted, 
+                    self.r_points_sorted, 
+                    kind='linear', 
+                    fill_value="extrapolate"
+                )
+                self.z_interp = interp1d(
+                    self.phi_points_sorted, 
+                    self.z_points_sorted, 
+                    kind='linear', 
+                    fill_value="extrapolate"
+                )
+            else:
+                raise ValueError("Unsupported interpolation type. Choose 'linear' or 'cubic'.")
+        except ValueError as e:
+            print(f"Fehler bei der Interpolation: {e}. Verwende lineare Interpolation.")
+            # Fallback auf lineare Interpolation
             self.radius_interp = interp1d(
                 self.phi_points_sorted, 
                 self.r_points_sorted, 
@@ -46,8 +70,6 @@ class Rand:
                 kind='linear', 
                 fill_value="extrapolate"
             )
-        else:
-            raise ValueError("Unsupported interpolation type. Choose 'linear' or 'cubic'.")
 
     def isInside(self, x, y):
         """

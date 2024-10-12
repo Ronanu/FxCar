@@ -51,7 +51,7 @@ if __name__ == "__main__":
     rand = Rand(points, interpolation_type='cubic')
 
     # Initialisiere das MinSurface-Objekt mit den Randpunkten
-    min_surface = MinSurface(points)
+    min_surface = MinSurface(rand)
 
     # Führe die Berechnungen durch
     min_surface.calculate_initial_surface()
