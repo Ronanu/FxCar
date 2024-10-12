@@ -10,9 +10,11 @@ class SurfaceEvolverInput:
 
         # Erstelle ein Gitter für Radien und Winkel (Phi), wobei die Radienwerte abhängig von Phi sind
         self.R = np.zeros((self.num_angles, self.num_radii))
+        self.max_radius_list = []
         for i, phi in enumerate(self.phi_values):
             max_radius = self.rand.getRadius(phi)
-            self.R[i, :] = np.linspace(0.2, max_radius, self.num_radii)
+            self.max_radius_list.append(max_radius)
+            self.R[i, :] = np.linspace(0, max_radius, self.num_radii)
 
         # Winkelgitter für Phi erzeugen
         self.Phi = np.tile(self.phi_values, (self.num_radii, 1)).T
@@ -56,7 +58,10 @@ class SurfaceEvolverInput:
         vertex_mapping = {}
         vertex_id = 1
         for i in range(vertices.shape[0]):
-            evolver_input.append(f"{vertex_id} {vertices[i, 0]} {vertices[i, 1]} {Z.ravel()[i]}\n")
+            # Prüfe, ob der Vertex auf dem Rand liegt
+            is_fixed = # check self.max_radius_list
+            fixed_text = " fixed" if is_fixed else ""
+            evolver_input.append(f"{vertex_id} {vertices[i, 0]} {vertices[i, 1]} {Z.ravel()[i]}{fixed_text}\n")
             vertex_mapping[i] = vertex_id
             vertex_id += 1
 
@@ -69,9 +74,12 @@ class SurfaceEvolverInput:
                 v1 = simplex[k]
                 v2 = simplex[(k + 1) % 3]
                 edge_key = (v1, v2)
+                # Prüfe, ob beide Endpunkte der Kante auf dem Rand liegen
+                is_fixed = # check self.max_radius_list
+                fixed_text = " fixed" if is_fixed else ""
                 # Kante nur einmal definieren
                 if edge_key not in edge_mapping and (v2, v1) not in edge_mapping:
-                    evolver_input.append(f"{edge_id} {vertex_mapping[v1]} {vertex_mapping[v2]}\n")
+                    evolver_input.append(f"{edge_id} {vertex_mapping[v1]} {vertex_mapping[v2]}{fixed_text}\n")
                     edge_mapping[edge_key] = edge_id
                     edge_mapping[(v2, v1)] = -edge_id  # Gegenorientierte Kante
                     edge_id += 1
