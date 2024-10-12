@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial import Delaunay
-import matplotlib.pyplot as plt
 
 class SurfaceEvolverInput:
     def __init__(self, rand, num_r=10, num_phi=36):
@@ -13,7 +12,7 @@ class SurfaceEvolverInput:
         self.R = np.zeros((self.num_angles, self.num_radii))
         for i, phi in enumerate(self.phi_values):
             max_radius = self.rand.getRadius(phi)
-            self.R[i, :] = np.linspace(0, max_radius, self.num_radii)
+            self.R[i, :] = np.linspace(0.2, max_radius, self.num_radii)
 
         # Winkelgitter für Phi erzeugen
         self.Phi = np.tile(self.phi_values, (self.num_radii, 1)).T
@@ -61,7 +60,7 @@ class SurfaceEvolverInput:
             vertex_mapping[i] = vertex_id
             vertex_id += 1
 
-        # Edges und Faces basierend auf der Delaunay-Triangulation
+        # Edges (Kanten definieren)
         evolver_input.append("\nedges\n")
         edge_mapping = {}
         edge_id = 1
@@ -74,32 +73,39 @@ class SurfaceEvolverInput:
                 if edge_key not in edge_mapping and (v2, v1) not in edge_mapping:
                     evolver_input.append(f"{edge_id} {vertex_mapping[v1]} {vertex_mapping[v2]}\n")
                     edge_mapping[edge_key] = edge_id
+                    edge_mapping[(v2, v1)] = -edge_id  # Gegenorientierte Kante
                     edge_id += 1
 
-        # Faces
-        evolver_input.append("\nfaces\n")
-        face_id = 1
+        # Temporäre Speicherung der Facetten
+        faces = []
         for simplex in triangulation.simplices:
             v1, v2, v3 = simplex
-            edge1 = edge_mapping.get((v1, v2)) or edge_mapping.get((v2, v1))
-            edge2 = edge_mapping.get((v2, v3)) or edge_mapping.get((v3, v2))
-            edge3 = edge_mapping.get((v3, v1)) or edge_mapping.get((v1, v3))
-            evolver_input.append(f"{face_id} {edge1} {edge2} {edge3}\n")
+            edge1 = edge_mapping.get((v1, v2))
+            edge2 = edge_mapping.get((v2, v3))
+            edge3 = edge_mapping.get((v3, v1))
+            faces.append([edge1, edge2, edge3])  # Temporär speichern
+
+        # Sortiere die Facetten und überprüfe die Kantenorientierung
+        sorted_faces = []
+        for face in faces:
+            sorted_face = []
+            for edge in face:
+                # Kante bereits richtig orientiert, ansonsten negativ markieren
+                if edge > 0:
+                    sorted_face.append(edge)
+                else:
+                    sorted_face.append(edge)  # Bereits umgekehrt
+            sorted_faces.append(sorted_face)
+
+        # Füge die sortierten Facetten dem Evolver Input hinzu
+        evolver_input.append("\nfaces\n")
+        face_id = 1
+        for face in sorted_faces:
+            evolver_input.append(f"{face_id} {face[0]} {face[1]} {face[2]}\n")
             face_id += 1
 
         return ''.join(evolver_input)
 
-    def visualize_surface(self):
-        """Visualisiert die Oberfläche zur Überprüfung der Delaunay-Triangulation."""
-        X = self.R * np.cos(self.Phi) + self.rand.center_x
-        Y = self.R * np.sin(self.Phi) + self.rand.center_y
-
-        plt.triplot(X.ravel(), Y.ravel(), Delaunay(np.column_stack((X.ravel(), Y.ravel()))).simplices)
-        plt.plot(X, Y, 'o')
-        plt.title("Delaunay Triangulation Visualization")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.show()
 
 # Beispielaufruf der Klasse
 if __name__ == "__main__":
@@ -110,9 +116,6 @@ if __name__ == "__main__":
     # Initialisiere das Rand-Objekt mit den eingelesenen Punkten
     rand = Rand(points, interpolation_type='cubic')
     surface_input_generator = SurfaceEvolverInput(rand)
-    
-    # Visualisierung zur Überprüfung
-    surface_input_generator.visualize_surface()
 
     # Generieren der Evolver Input-Datei
     evolver_input_text = surface_input_generator.generate_surface_evolver_input()
