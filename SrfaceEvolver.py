@@ -1,13 +1,14 @@
 import numpy as np
 from scipy.spatial import Delaunay
 from rand import Rand
+from scipy.interpolate import CubicSpline
+
 
 class SurfaceEvolverInput:
-    def __init__(self, rand:Rand, num_r=10, num_phi=72):
+    def __init__(self, rand:Rand, num_r=20):
         self.rand = rand
         self.num_radii = num_r  # Anzahl der Radialpunkte
-        self.num_angles = num_phi  # Anzahl der Winkelpunkte
-        self.phi_values = np.linspace(-np.pi, np.pi, self.num_angles)
+        self.phi_values = self.rand.phi_points_sorted
 
         # Erstelle ein Gitter für Radien und Winkel (Phi), wobei die Radienwerte abhängig von Phi sind
         self.R = np.zeros((self.num_angles, self.num_radii))
@@ -15,7 +16,7 @@ class SurfaceEvolverInput:
         for i, phi in enumerate(self.phi_values):
             max_radius = self.rand.getRadius(phi)
             self.max_radius_list.append(max_radius)
-            self.R[i, :] = np.linspace(0, max_radius, self.num_radii)
+            self.R[i, :] = np.linspace(0.2, max_radius, self.num_radii)
 
         # Winkelgitter für Phi erzeugen
         self.Phi = np.tile(self.phi_values, (self.num_radii, 1)).T
@@ -32,18 +33,42 @@ class SurfaceEvolverInput:
         y_coords = radii_grid * np.sin(angle_grid) + self.rand.center_y
         z_values_init = np.full_like(radii_grid, np.nan)
 
-        # Berechnung der initialen Z-Werte basierend auf den nächstgelegenen Randpunkten
+        # Berechnung der initialen Z-Werte basierend auf kubischer Spline-Interpolation
         for i in range(radii_grid.shape[0]):
             for j in range(radii_grid.shape[1]):
                 phi = np.arctan2(y_coords[i, j] - self.rand.center_y, x_coords[i, j] - self.rand.center_x)
-                zmax_phi = self.rand.getPoint(phi)[2]
-                radius_max_phi = self.rand.getRadius(phi)
-                opposite_phi = phi + np.pi if phi < 0 else phi - np.pi
-                zmax_opposite_phi = self.rand.getPoint(opposite_phi)[2]
-                radius_max_opposite_phi = self.rand.getRadius(opposite_phi)
-                radius = np.sqrt((x_coords[i, j] - self.rand.center_x)**2 + (y_coords[i, j] - self.rand.center_y)**2)
-                z = (radius / radius_max_phi) * zmax_phi + (radius_max_phi - radius) / radius_max_phi * zmax_opposite_phi
-                z_values_init[i, j] = z
+
+                # Holen der beiden Randpunkte und Z-Werte bei phi und phi + pi (opposite phi)
+                z_phi = self.rand.getPoint(phi)[2]
+                z_opposite_phi = self.rand.getPoint(phi + np.pi if phi < 0 else phi - np.pi)[2]
+
+                # Werte an den maximalen Radien
+                radius_phi = self.rand.getRadius(phi)
+                radius_opposite_phi = self.rand.getRadius(phi + np.pi if phi < 0 else phi - np.pi)
+
+                # Aktuelle Position des Punktes
+                current_radius = np.sqrt((x_coords[i, j] - self.rand.center_x)**2 + (y_coords[i, j] - self.rand.center_y)**2)
+
+                # Definiere die Punkte (p1: am Rand bei phi, p2: am Rand gegenüberliegend bei phi + pi)
+                p1 = np.array([self.rand.center_x + radius_phi * np.cos(phi), 
+                            self.rand.center_y + radius_phi * np.sin(phi), 
+                            z_phi])
+                
+                p2 = np.array([self.rand.center_x + radius_opposite_phi * np.cos(phi + np.pi), 
+                            self.rand.center_y + radius_opposite_phi * np.sin(phi + np.pi), 
+                            z_opposite_phi])
+
+                # Der Punkt in der Mitte ist die aktuelle Position (x, y, z)
+                pm = np.array([x_coords[i, j], y_coords[i, j], np.nan])  # Z-Wert wird mit Spline interpoliert
+
+                # Erstelle die kubische Spline-Interpolation für die Z-Werte
+                t = np.array([-radius_opposite_phi, radius_phi])
+                z_spline = CubicSpline(t, [z_opposite_phi, z_phi], bc_type='clamped')
+                
+                z_interpolated = z_spline(current_radius)
+                
+                # Setze den interpolierten Z-Wert in die z_values_init
+                z_values_init[i, j] = z_interpolated
 
         return z_values_init
 

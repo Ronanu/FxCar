@@ -107,10 +107,8 @@ class Rand:
 # Test der Rand-Klasse
 if __name__ == "__main__":
     # Beispielpunkte
-    points = np.array([
-        [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0],
-        [0.5, 0, 0.5], [0, 0.5, 0.5], [1, 0.5, 0.5], [0.5, 1, 0.5]
-    ])
+    from minimal_surface import read_file
+    points, file_path = read_file()
 
     # Erstelle ein Rand-Objekt mit kubischer Interpolation
     rand = Rand(points, interpolation_type='cubic')

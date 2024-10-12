@@ -9,6 +9,8 @@ länge = 1.5  # Abstand des dritten Punktes von der X-Achse in der XY-Ebene (v3)
 spitzen_versatz = 0.5  # Position der Spitze entlang der Y-Achse (v4)
 bauchfaktor = 0.3  # Faktor, um die Mittelpunkte nach außen zu bewegen
 
+num_points = 100  # Anzahl der Punkte entlang jeder Kante
+
 # Definiere die Punkte für die Ecken des Tetraeders
 v1 = np.array([-breite / 2, 0, 0])
 v2 = np.array([breite / 2, 0, 0])
@@ -35,7 +37,7 @@ m24_bauched = m24 + (m24 - center) * bauchfaktor
 m34_bauched = m34 + (m34 - center) * bauchfaktor
 
 # Funktion zur Erstellung einer kubischen Spline-Kurve durch drei Punkte
-def create_spline_curve(p1, pm, p2, num_points=20):
+def create_spline_curve(p1, pm, p2, num_points=num_points):
     # Die Punkte entlang der Kurve
     points = np.array([p1, pm, p2])
     t = np.array([0, 0.5, 1])  # Normalisierte Parameter für die drei Punkte
