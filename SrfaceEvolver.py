@@ -9,6 +9,7 @@ class SurfaceEvolverInput:
         self.rand = rand
         self.num_radii = num_r  # Anzahl der Radialpunkte
         self.phi_values = self.rand.phi_points_sorted
+        self.num_angles = len(self.phi_values)
 
         # Erstelle ein Gitter für Radien und Winkel (Phi), wobei die Radienwerte abhängig von Phi sind
         self.R = np.zeros((self.num_angles, self.num_radii))
@@ -48,18 +49,6 @@ class SurfaceEvolverInput:
 
                 # Aktuelle Position des Punktes
                 current_radius = np.sqrt((x_coords[i, j] - self.rand.center_x)**2 + (y_coords[i, j] - self.rand.center_y)**2)
-
-                # Definiere die Punkte (p1: am Rand bei phi, p2: am Rand gegenüberliegend bei phi + pi)
-                p1 = np.array([self.rand.center_x + radius_phi * np.cos(phi), 
-                            self.rand.center_y + radius_phi * np.sin(phi), 
-                            z_phi])
-                
-                p2 = np.array([self.rand.center_x + radius_opposite_phi * np.cos(phi + np.pi), 
-                            self.rand.center_y + radius_opposite_phi * np.sin(phi + np.pi), 
-                            z_opposite_phi])
-
-                # Der Punkt in der Mitte ist die aktuelle Position (x, y, z)
-                pm = np.array([x_coords[i, j], y_coords[i, j], np.nan])  # Z-Wert wird mit Spline interpoliert
 
                 # Erstelle die kubische Spline-Interpolation für die Z-Werte
                 t = np.array([-radius_opposite_phi, radius_phi])
@@ -168,7 +157,7 @@ if __name__ == "__main__":
     points, file_path = read_file(True)  # Einlesen der Punkte aus einer Datei
 
     # Initialisiere das Rand-Objekt mit den eingelesenen Punkten
-    rand = Rand(points, interpolation_type='cubic')
+    rand = Rand(points, interpolation_type='linear')
     surface_input_generator = SurfaceEvolverInput(rand)
 
     # Generieren der Evolver Input-Datei

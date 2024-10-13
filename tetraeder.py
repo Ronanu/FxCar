@@ -7,7 +7,7 @@ breite = 2  # Länge der Seite entlang der X-Achse (v1-v2)
 höhe = 1    # Höhe der Spitze über der XY-Ebene (v4)
 länge = 1.5  # Abstand des dritten Punktes von der X-Achse in der XY-Ebene (v3)
 spitzen_versatz = 0.5  # Position der Spitze entlang der Y-Achse (v4)
-bauchfaktor = 0.3  # Faktor, um die Mittelpunkte nach außen zu bewegen
+bauchfaktor = -0.1  # Faktor, um die Mittelpunkte nach außen zu bewegen
 
 num_points = 100  # Anzahl der Punkte entlang jeder Kante
 
