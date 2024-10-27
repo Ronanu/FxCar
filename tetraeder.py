@@ -1,14 +1,26 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
+import math
+
+# Eingabe für Gleichseitigkeit
+gleichseitig = False
 
 # Parameter für die Definition des Tetraeders
 breite = 2  # Länge der Seite entlang der X-Achse (v1-v2)
-höhe = 1    # Höhe der Spitze über der XY-Ebene (v4)
-länge = 1.5  # Abstand des dritten Punktes von der X-Achse in der XY-Ebene (v3)
-spitzen_versatz = 0.5  # Position der Spitze entlang der Y-Achse (v4)
-bauchfaktor = -0.1  # Faktor, um die Mittelpunkte nach außen zu bewegen
 
+if gleichseitig:
+    # Berechnung der Höhe, Länge und Spitzenversatz basierend auf der Breite für einen gleichseitigen Tetraeder
+    höhe = math.sqrt(2 / 3) * breite  # Höhe der Spitze über der XY-Ebene
+    länge = math.sqrt(3) / 2 * breite  # Abstand des dritten Punktes von der X-Achse in der XY-Ebene
+    spitzen_versatz = länge / 3  # Spitzenversatz entlang der Y-Achse
+else:
+    # Voreingestellte Werte für Höhe, Länge und Spitzenversatz
+    höhe = 1  # Höhe der Spitze über der XY-Ebene (v4)
+    länge = 1.5  # Abstand des dritten Punktes von der X-Achse in der XY-Ebene (v3)
+    spitzen_versatz = 0.5  # Position der Spitze entlang der Y-Achse (v4)
+
+bauchfaktor = -0.15  # Faktor, um die Mittelpunkte nach außen zu bewegen
 num_points = 100  # Anzahl der Punkte entlang jeder Kante
 
 # Definiere die Punkte für die Ecken des Tetraeders
