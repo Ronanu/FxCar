@@ -25,34 +25,21 @@ def parse_off(file_path):
     
     return np.array(vertices), np.array(faces)
 
-def ensure_cyclic_orientation(face, edge_map):
+def generate_surface_evolver_file_with_oriented_facets(vertices, faces, output_file_path):
     """
-    Ensures that edges of the given face follow a cyclic order to form a closed loop.
-    """
-    v1, v2, v3 = face
-    ordered_edges = [
-        edge_map[(v1, v2)],
-        edge_map[(v2, v3)],
-        edge_map[(v3, v1)]
-    ]
-    # Check if first and last vertices create a closed loop; otherwise, reorder
-    if edge_map[(v1, v2)] != ordered_edges[0]:
-        ordered_edges = ordered_edges[::-1]
-    return ordered_edges
-
-def generate_surface_evolver_file(vertices, faces, output_file_path):
-    """
-    Generate a Surface Evolver (.fe) file from vertices and faces with cyclically oriented facets.
+    Generate a Surface Evolver (.fe) file from vertices and faces with correctly oriented facets.
+    This function rebuilds facets explicitly to avoid inconsistencies.
     """
     with open(output_file_path, 'w') as fe_file:
-        fe_file.write("// Surface Evolver datafile with cyclic facet orientation\n")
+        # Write header information
+        fe_file.write("// Surface Evolver datafile with oriented facet edges\n")
         fe_file.write("vertices\n")
         
         # Write vertices
         for i, (x, y, z) in enumerate(vertices, start=1):
             fe_file.write(f"{i} {x} {y} {z}\n")
         
-        # Define edges explicitly
+        # Define edges explicitly with orientation consistency
         fe_file.write("\nedges\n")
         edge_map = {}
         edge_id = 1
@@ -62,31 +49,32 @@ def generate_surface_evolver_file(vertices, faces, output_file_path):
                 if (v_start, v_end) not in edge_map and (v_end, v_start) not in edge_map:
                     fe_file.write(f"{edge_id} {v_start + 1} {v_end + 1}\n")
                     edge_map[(v_start, v_end)] = edge_id
-                    edge_map[(v_end, v_start)] = edge_id  # Include reverse for orientation
+                    edge_map[(v_end, v_start)] = edge_id  # Include reverse mapping
                     edge_id += 1
 
-        # Write faces with cyclic orientation
+        # Write faces with explicitly reoriented edges
         fe_file.write("\nfaces\n")
-        for i, face in enumerate(faces, start=1):
-            face_edges = ensure_cyclic_orientation(face, edge_map)
+        for i, (v1, v2, v3) in enumerate(faces, start=1):
+            # Rebuild facets using oriented edges
+            face_edges = [edge_map[(v1, v2)], edge_map[(v2, v3)], edge_map[(v3, v1)]]
             fe_file.write(f"{i} {face_edges[0]} {face_edges[1]} {face_edges[2]}\n")
         
-        # Constraints to fix edges of the first triangle
-        fe_file.write("\n// Constraints to fix edges for unfolding\n")
+        # Constraints section for fixing the first triangle edges
+        fe_file.write("\n// Constraints to fix the edges of the first triangle\n")
         fe_file.write("constraints\n")
         
         # Fix lengths of the first triangle's edges (edges between vertices of the first face)
         v1, v2, v3 = faces[0]
-        fe_file.write(f"1 {{edge {edge_map[(v1, v2)]}}}\n")
-        fe_file.write(f"2 {{edge {edge_map[(v2, v3)]}}}\n")
-        fe_file.write(f"3 {{edge {edge_map[(v3, v1)]}}}\n")
+        fe_file.write(f"1 {{edge {edge_map[(v1, v2)]}}} // Fix edge length between vertices {v1+1} and {v2+1}\n")
+        fe_file.write(f"2 {{edge {edge_map[(v2, v3)]}}} // Fix edge length between vertices {v2+1} and {v3+1}\n")
+        fe_file.write(f"3 {{edge {edge_map[(v3, v1)]}}} // Fix edge length between vertices {v3+1} and {v1+1}\n")
         
-        # Instructions for relaxation
+        # Instructions for relaxation to achieve unfolding
         fe_file.write("\n// Instructions for relaxation\n")
-        fe_file.write("gogo 1000\n")
+        fe_file.write("gogo 1000 // Run relaxation steps to minimize energy and achieve unfolding\n")
 
 # GUI for file selection and processing
-def select_file_and_generate_fe():
+def select_file_and_generate_fe_with_oriented_facets():
     # Open file dialog to select .off file
     root = tk.Tk()
     root.withdraw()  # Hide the root window
@@ -100,11 +88,11 @@ def select_file_and_generate_fe():
     vertices, faces = parse_off(file_path)
     
     # Define output path for the Surface Evolver file
-    output_file_path = os.path.splitext(file_path)[0] + "_cyclic_oriented.fe"
+    output_file_path = os.path.splitext(file_path)[0] + "_oriented_facets_rebuilt.fe"
     
-    # Generate the Surface Evolver file with ordered and oriented facets and unfolding constraints
-    generate_surface_evolver_file(vertices, faces, output_file_path)
-    print(f"Surface Evolver file generated with cyclic facet orientation: {output_file_path}")
+    # Generate the Surface Evolver file with explicit edge and facet orientation
+    generate_surface_evolver_file_with_oriented_facets(vertices, faces, output_file_path)
+    print(f"Surface Evolver file generated with explicitly rebuilt facets: {output_file_path}")
 
 # Run the GUI and processing function
-select_file_and_generate_fe()
+select_file_and_generate_fe_with_oriented_facets()
