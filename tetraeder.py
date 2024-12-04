@@ -4,7 +4,7 @@ from scipy.interpolate import CubicSpline
 import math
 
 # Eingabe für Gleichseitigkeit
-gleichseitig = False
+gleichseitig = True
 
 # Parameter für die Definition des Tetraeders
 breite = 2  # Länge der Seite entlang der X-Achse (v1-v2)
@@ -20,8 +20,8 @@ else:
     länge = 1.5  # Abstand des dritten Punktes von der X-Achse in der XY-Ebene (v3)
     spitzen_versatz = 0.5  # Position der Spitze entlang der Y-Achse (v4)
 
-bauchfaktor = -0.15  # Faktor, um die Mittelpunkte nach außen zu bewegen
-num_points = 100  # Anzahl der Punkte entlang jeder Kante
+bauchfaktor = 0.2  # Faktor, um die Mittelpunkte nach außen zu bewegen
+num_points = 300  # Anzahl der Punkte entlang jeder Kante
 
 # Definiere die Punkte für die Ecken des Tetraeders
 v1 = np.array([-breite / 2, 0, 0])
@@ -41,10 +41,10 @@ m34 = (v3 + v4) / 2  # Mittelpunkt zwischen v3 und v4
 center = (v1 + v2 + v3 + v4) / 4
 
 # Verschiebe die Mittelpunkte nach außen, um eine gewölbte Form zu erhalten
-m12_bauched = m12 + (m12 - center) * bauchfaktor
-m13_bauched = m13 + (m13 - center) * bauchfaktor
+m12_bauched = m12 + (m12 - center) * -0.1  #bauchfaktor
+m13_bauched = m13 + (m13 - center) * -0.1  #bauchfaktor
 m14_bauched = m14 + (m14 - center) * bauchfaktor
-m23_bauched = m23 + (m23 - center) * bauchfaktor
+m23_bauched = m23 + (m23 - center) * -0.1  #bauchfaktor
 m24_bauched = m24 + (m24 - center) * bauchfaktor
 m34_bauched = m34 + (m34 - center) * bauchfaktor
 
@@ -84,10 +84,11 @@ def save_curves_to_file(filename, curves):
             file.write("\n")  # Trenne die Kurven durch eine leere Zeile
 
 # Speichere die Kurven in den entsprechenden Dateien
-save_curves_to_file('seite_1_2_3.txt', [curve1, curve2, curve4])
-save_curves_to_file('seite_2_3_4.txt', [curve4, curve5, curve6])
-save_curves_to_file('seite_1_3_4.txt', [curve2, curve3, curve6])
-save_curves_to_file('seite_1_2_4.txt', [curve1, curve3, curve5])
+prefix = 'doppelbauch_'
+save_curves_to_file(prefix + 'seite_1_2_3.txt', [curve1, curve2, curve4])
+save_curves_to_file(prefix + 'seite_2_3_4.txt', [curve4, curve5, curve6])
+save_curves_to_file(prefix + 'seite_1_3_4.txt', [curve2, curve3, curve6])
+save_curves_to_file(prefix + 'seite_1_2_4.txt', [curve1, curve3, curve5])
 
 # Plotten der Kurven mit Matplotlib
 fig = plt.figure(figsize=(8, 8))
