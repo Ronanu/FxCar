@@ -78,11 +78,11 @@ class SurfaceEvolverAutomation:
     def save_output(self):
         """Speichert das optimierte Modell im gewünschten Format mit Logging und Fehlerüberprüfung."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.run_evolver_command('P')
+        time.sleep(1)  # Wartezeit, um sicherzustellen, dass die Datei vollständig geschrieben wird
         try:
             if self.output_format == 'off':
                 output_file = f"{self.input_file_path}_{timestamp}.off"
-                self.run_evolver_command("6")
+                self.run_evolver_command('P; 6; "hallo.off";')
                 time.sleep(1)  # Wartezeit, um sicherzustellen, dass die Datei vollständig geschrieben wird
                 self.run_evolver_command('xxx' + output_file)
                 logger.info(f"Saved output as OFF file: {output_file}")

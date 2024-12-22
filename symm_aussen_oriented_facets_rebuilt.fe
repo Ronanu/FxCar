@@ -1,4 +1,4 @@
-// Surface Evolver datafile generated from .off file with ordered edges
+// Surface Evolver datafile with oriented facet edges
 vertices
 1 -0.5 0.0 -0.0
 2 -0.497949 0.01048 -0.002449

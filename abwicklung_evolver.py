@@ -5,41 +5,40 @@ import os
 
 def parse_off(file_path):
     """
-    Function to parse an .off file and return vertices and faces.
+    Funktion zum Parsen einer .off-Datei und Rückgabe von Vertices und Faces.
     """
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    # Confirm the file starts with 'OFF' as expected for this format
-    assert lines[0].strip() == 'OFF', "Not a valid OFF file"
+    # Überprüfen, ob die Datei mit 'OFF' beginnt
+    assert lines[0].strip() == 'OFF', "Keine gültige OFF-Datei"
     
-    # Extract the header information with counts of vertices and faces
+    # Extrahieren der Anzahl von Vertices und Faces
     counts = list(map(int, lines[1].strip().split()))
     num_vertices, num_faces = counts[0], counts[1]
     
-    # Parse vertices
+    # Parsen der Vertices
     vertices = [list(map(float, line.strip().split())) for line in lines[2:2 + num_vertices]]
     
-    # Parse faces (assuming they are triangles)
+    # Parsen der Faces (angenommen, sie sind Dreiecke)
     faces = [list(map(int, line.strip().split()[1:4])) for line in lines[2 + num_vertices:2 + num_vertices + num_faces]]
     
     return np.array(vertices), np.array(faces)
 
-def generate_surface_evolver_file_with_oriented_facets(vertices, faces, output_file_path):
+def generate_surface_evolver_file(vertices, faces, output_file_path):
     """
-    Generate a Surface Evolver (.fe) file from vertices and faces with correctly oriented facets.
-    This function rebuilds facets explicitly to avoid inconsistencies.
+    Generiert eine Surface Evolver (.fe)-Datei aus Vertices und Faces mit konsistenter Kantenorientierung.
     """
     with open(output_file_path, 'w') as fe_file:
-        # Write header information
-        fe_file.write("// Surface Evolver datafile with oriented facet edges\n")
+        # Header-Informationen schreiben
+        fe_file.write("// Surface Evolver Datenfile mit konsistenter Kantenorientierung\n")
         fe_file.write("vertices\n")
         
-        # Write vertices
+        # Schreiben der Vertices
         for i, (x, y, z) in enumerate(vertices, start=1):
             fe_file.write(f"{i} {x} {y} {z}\n")
         
-        # Define edges explicitly with orientation consistency
+        # Definieren der Kanten mit konsistenter Orientierung
         fe_file.write("\nedges\n")
         edge_map = {}
         edge_id = 1
@@ -49,50 +48,38 @@ def generate_surface_evolver_file_with_oriented_facets(vertices, faces, output_f
                 if (v_start, v_end) not in edge_map and (v_end, v_start) not in edge_map:
                     fe_file.write(f"{edge_id} {v_start + 1} {v_end + 1}\n")
                     edge_map[(v_start, v_end)] = edge_id
-                    edge_map[(v_end, v_start)] = edge_id  # Include reverse mapping
+                    edge_map[(v_end, v_start)] = -edge_id  # Umgekehrte Orientierung
                     edge_id += 1
 
-        # Write faces with explicitly reoriented edges
+        # Schreiben der Faces mit korrekt orientierten Kanten
         fe_file.write("\nfaces\n")
         for i, (v1, v2, v3) in enumerate(faces, start=1):
-            # Rebuild facets using oriented edges
             face_edges = [edge_map[(v1, v2)], edge_map[(v2, v3)], edge_map[(v3, v1)]]
-            fe_file.write(f"{i} {face_edges[0]} {face_edges[1]} {face_edges[2]}\n")
-        
-        # Constraints section for fixing the first triangle edges
-        fe_file.write("\n// Constraints to fix the edges of the first triangle\n")
-        fe_file.write("constraints\n")
-        
-        # Fix lengths of the first triangle's edges (edges between vertices of the first face)
-        v1, v2, v3 = faces[0]
-        fe_file.write(f"1 {{edge {edge_map[(v1, v2)]}}} // Fix edge length between vertices {v1+1} and {v2+1}\n")
-        fe_file.write(f"2 {{edge {edge_map[(v2, v3)]}}} // Fix edge length between vertices {v2+1} and {v3+1}\n")
-        fe_file.write(f"3 {{edge {edge_map[(v3, v1)]}}} // Fix edge length between vertices {v3+1} and {v1+1}\n")
-        
-        # Instructions for relaxation to achieve unfolding
-        fe_file.write("\n// Instructions for relaxation\n")
-        fe_file.write("gogo 1000 // Run relaxation steps to minimize energy and achieve unfolding\n")
+            fe_file.write(f"{i} {' '.join(map(str, face_edges))}\n")
 
-# GUI for file selection and processing
-def select_file_and_generate_fe_with_oriented_facets():
-    # Open file dialog to select .off file
+def select_file_and_generate_fe():
+    """
+    Öffnet einen Dateidialog zur Auswahl einer .off-Datei und generiert die entsprechende .fe-Datei.
+    """
+    # Öffnen des Dateidialogs zur Auswahl der .off-Datei
     root = tk.Tk()
-    root.withdraw()  # Hide the root window
-    file_path = filedialog.askopenfilename(filetypes=[("OFF files", "*.off")])
+    root.withdraw()  # Versteckt das Hauptfenster
+    file_path = filedialog.askopenfilename(filetypes=[("OFF-Dateien", "*.off")])
     
     if not file_path:
-        print("No file selected. Exiting.")
+        print("Keine Datei ausgewählt. Beende.")
         return
 
-    # Parse the OFF file
+    # Parsen der OFF-Datei
     vertices, faces = parse_off(file_path)
     
-    # Define output path for the Surface Evolver file
-    output_file_path = os.path.splitext(file_path)[0] + "_oriented_facets_rebuilt.fe"
+    # Definieren des Ausgabewegs für die Surface Evolver-Datei
+    output_file_path = os.path.splitext(file_path)[0] + "_oriented.fe"
     
-    # Generate the Surface Evolver file with explicit edge and facet orientation
-    generate_surface_evolver_file_with_oriented_facets(vertices, faces, output_file_path)
-    print(f"Surface Evolver file generated with explicitly rebuilt facets: {output_file_path}")
+    # Generieren der Surface Evolver-Datei mit konsistenter Kantenorientierung
+    generate_surface_evolver_file(vertices, faces, output_file_path)
+    print(f"Surface Evolver-Datei erfolgreich generiert: {output_file_path}")
 
-# Run the GUI and processing function
-select_file_and_generate_fe_with_oriented_facets()
+# Ausführen der GUI und der Verarbeitungsfunktion
+if __name__ == "__main__":
+    select_file_and_generate_fe()
